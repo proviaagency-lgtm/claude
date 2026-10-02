@@ -150,7 +150,7 @@ export default {
       const buffer = await file.arrayBuffer();
       let text = new TextDecoder('utf-8').decode(buffer);
       // Older Excel exports are Windows-1252, which shows up as U+FFFD here.
-      if (text.includes('�')) text = new TextDecoder('windows-1252').decode(buffer);
+      if (text.includes('\ufffd')) text = new TextDecoder('windows-1252').decode(buffer);
       local.fileName = file.name;
       local.text = text;
       local.outcome = null;
