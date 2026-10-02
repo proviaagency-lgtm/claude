@@ -88,7 +88,7 @@ export const COLLECTIONS = {
       pct('vatRate', 'TVA (%)', {
         max: 30,
         step: 0.1,
-        default: (settings) => settings.defaultVatRate,
+        fallback: 'defaultVatRate',
         aliases: ['tva', 'taux de tva'],
       }),
       num('netPrice', 'Prix net industriel (€ HT)', {
@@ -271,16 +271,16 @@ export const COLLECTIONS = {
       int('weeks', 'Horizon (semaines)', {
         min: 1,
         max: 260,
-        default: (settings) => settings.horizonWeeks,
+        fallback: 'horizonWeeks',
         aliases: ['horizon', 'semaines'],
       }),
       int('rampWeeks', 'Montée en charge (semaines)', {
         max: 104,
-        default: (settings) => settings.rampWeeks,
+        fallback: 'rampWeeks',
         aliases: ['montée en charge'],
       }),
       pct('cannibalization', 'Cannibalisation de votre gamme (%)', {
-        default: (settings) => settings.cannibalization,
+        fallback: 'cannibalization',
         aliases: ['cannibalisation'],
       }),
       num('delayWeeks', 'Retard d’implantation (semaines)', {
@@ -325,13 +325,13 @@ export const COLLECTIONS = {
       num('elasticity', 'Élasticité au linéaire', {
         max: 1,
         step: 0.01,
-        default: (settings) => settings.shelfElasticity,
+        fallback: 'shelfElasticity',
         aliases: ['élasticité'],
       }),
       int('weeks', 'Horizon (semaines)', {
         min: 1,
         max: 260,
-        default: (settings) => settings.horizonWeeks,
+        fallback: 'horizonWeeks',
         aliases: ['horizon', 'semaines'],
       }),
       int('unitsPerFacing', 'Capacité par facing (UVC)', {
@@ -343,7 +343,7 @@ export const COLLECTIONS = {
         min: 0.5,
         max: 30,
         step: 0.5,
-        default: (settings) => settings.restockDays,
+        fallback: 'restockDays',
         aliases: ['réassort', 'jours réassort'],
       }),
       pct('currentOosRate', 'Taux de rupture actuel (%)', {
@@ -395,12 +395,14 @@ export function fieldRequired(field, record) {
   return Boolean(field.required || (field.requiredIf && field.requiredIf(record)));
 }
 
-/** A blank record with defaults applied (used by "Ajouter" forms). */
-export function newRecord(collectionKey, settings) {
+/**
+ * A blank record with its fixed defaults (used by "Ajouter" forms). Fields
+ * with a `fallback` stay empty so they keep following the settings.
+ */
+export function newRecord(collectionKey) {
   const record = {};
   for (const field of COLLECTIONS[collectionKey].fields) {
-    if (field.default === undefined) continue;
-    record[field.key] = typeof field.default === 'function' ? field.default(settings) : field.default;
+    if (field.default !== undefined) record[field.key] = field.default;
   }
   return record;
 }

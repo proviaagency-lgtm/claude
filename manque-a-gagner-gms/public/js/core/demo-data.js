@@ -177,11 +177,10 @@ export function buildDemoData(today, newId) {
       storesTarget,
       storesListed,
       rot,
-      weeks: 52,
-      rampWeeks: 8,
-      cannibalization,
       delayWeeks,
     };
+    // Horizon, ramp-up and the default 20 % cannibalisation follow the settings.
+    if (cannibalization !== 20) record.cannibalization = cannibalization;
     if (listingCost !== null) record.listingCost = listingCost;
     return record;
   });
@@ -204,10 +203,9 @@ export function buildDemoData(today, newId) {
       currentFacings,
       proposedFacings,
       rot,
-      elasticity: 0.17,
-      weeks: 52,
-      restockDays,
     };
+    // Elasticity and horizon follow the settings; restocking only when unusual.
+    if (restockDays !== 3) record.restockDays = restockDays;
     if (oosNow !== null) Object.assign(record, { currentOosRate: oosNow, targetOosRate: oosAfter });
     if (marketShare !== null) Object.assign(record, { marketShare, segmentFacings });
     return record;

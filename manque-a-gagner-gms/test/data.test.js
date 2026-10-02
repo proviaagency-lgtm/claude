@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { parseNumber, parseDate, normalizeKey } from '../public/js/core/parse.js';
 import { parseCSV, toCSV, protectCell, detectDelimiter } from '../public/js/core/csv.js';
 import { validateRecord, newRecord } from '../public/js/core/schema.js';
-import { validateSettings, normalizeSettings, DEFAULT_SETTINGS } from '../public/js/core/settings.js';
+import { validateSettings, normalizeSettings } from '../public/js/core/settings.js';
 import { importCSV, exportCSV, planImport, mapHeaders } from '../public/js/core/io.js';
 import { fmtEuro, fmtPct, fmtNumber, fmtDate } from '../public/js/core/format.js';
 import { periodWindow, daysInclusive } from '../public/js/core/dates.js';
@@ -112,10 +112,15 @@ test('cross-field checks and reference existence', () => {
   assert.match(facings.errors.targetOosRate, /deux taux/);
 });
 
-test('new records get defaults from settings', () => {
-  const record = newRecord('listings', { ...DEFAULT_SETTINGS, horizonWeeks: 26 });
-  assert.equal(record.weeks, 26);
-  assert.equal(record.cannibalization, 20);
+test('new records get fixed defaults and leave settings-driven fields empty', () => {
+  const listing = newRecord('listings');
+  assert.equal(listing.weeks, undefined);
+  assert.equal(listing.cannibalization, undefined);
+  assert.equal(listing.delayWeeks, 0);
+  const promo = newRecord('promotions');
+  assert.equal(promo.uplift, 2.5);
+  assert.equal(promo.fundedPct, 100);
+  assert.equal(promo.mechanic, 'remise');
 });
 
 test('settings must split consumer behaviour to 100 %', () => {
@@ -222,8 +227,12 @@ test('French formatting', () => {
 });
 
 test('period windows', () => {
-  assert.deepEqual(periodWindow('year-to-date', '2026-10-02'), { from: '2026-01-01', to: '2026-10-02' });
-  assert.deepEqual(periodWindow('quarter-to-date', '2026-11-15'), { from: '2026-10-01', to: '2026-11-15' });
-  assert.equal(daysInclusive(periodWindow('last-12-months', '2026-10-02').from, '2026-10-02'), 365);
+  assert.deepEqual(periodWindow('current-year', '2026-10-02'), { from: '2026-01-01', to: '2026-12-31' });
+  assert.deepEqual(periodWindow('current-quarter', '2026-11-15'), { from: '2026-10-01', to: '2026-12-31' });
+  assert.deepEqual(periodWindow('current-quarter', '2026-02-10'), { from: '2026-01-01', to: '2026-03-31' });
+  const rolling = periodWindow('last-12-months', '2026-10-02');
+  assert.equal(daysInclusive(rolling.from, '2026-10-02'), 365);
+  assert.equal(rolling.to, null);
   assert.deepEqual(periodWindow('all', '2026-10-02'), { from: null, to: null });
+  assert.deepEqual(periodWindow('custom', '2026-10-02', { from: '2026-01-01', to: 'bad' }), { from: '2026-01-01', to: null });
 });

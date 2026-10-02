@@ -16,6 +16,7 @@ import {
   groupResults,
   monthlyStockouts,
   actionLabel,
+  groupActions,
 } from '../public/js/core/calc.js';
 import { DEFAULT_SETTINGS } from '../public/js/core/settings.js';
 import { buildDemoData } from '../public/js/core/demo-data.js';
@@ -272,7 +273,24 @@ test('summaries and groups add up per lever', () => {
   const groups = groupResults(results, (r) => r.retailerId, 'mfg', 'revenue');
   assert.equal(groups.length, 1);
   close(groups[0].value, 1035.75);
-  assert.match(actionLabel(results[1]), /Implanter « Prospectus » dans 20 magasins de plus/);
+  assert.match(actionLabel(results[1]), /Implanter « Prospectus » dans tous les magasins prévus et sécuriser les stocks/);
+});
+
+test('identical actions are merged across lines', () => {
+  const line = (id, startDate, endDate) => ({ id, productId: 'p', retailerId: 'r', method: 'event', startDate, endDate, stores: 1, cause: 'rayon' });
+  const full = {
+    ...data,
+    stockouts: [line('a', '2026-03-01', '2026-03-07'), line('b', '2026-03-10', '2026-03-23')],
+    promotions: [promoRecord, { ...promoRecord, id: 'o2', storesActive: 90 }],
+  };
+  const results = computeAll(full, settings, { today: '2026-03-31' });
+  const groups = groupActions(results, (r) => r.mfg.revenue);
+  assert.equal(groups.length, 2);
+  const stockout = groups.find((g) => g.lever === 'stockouts');
+  assert.equal(stockout.results.length, 2);
+  close(stockout.units.gross, 7 * 3);
+  assert.equal(stockout.results[0].id, 'b', 'largest line first');
+  assert.match(stockout.label, /Fiabiliser la mise en rayon : Cookies/);
 });
 
 test('monthly stock-outs are spread by day', () => {
@@ -285,6 +303,13 @@ test('monthly stock-outs are spread by day', () => {
   close(months[0].value, 10.5 * 0.7);
   close(months[1].value, 10.5 * 0.3);
   close(months[2].value, 0);
+});
+
+test('demo facings follow the elasticity setting', () => {
+  let n = 0;
+  const demo = buildDemoData('2026-10-02', () => `id-${(n += 1)}`);
+  const at = (elasticity) => summarize(computeAll(demo, { ...settings, shelfElasticity: elasticity }, { today: '2026-10-02' }), 'mfg', 'revenue').byLever.facings.value;
+  assert.ok(at(0.25) > at(0.17) * 1.3);
 });
 
 test('demo dataset computes without critical warnings', () => {

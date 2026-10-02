@@ -1,7 +1,7 @@
 // Request handler: JSON API under /api, static web app everywhere else.
 
 import crypto from 'node:crypto';
-import { COLLECTIONS, COLLECTION_KEYS, LEVERS, validateRecord } from '../public/js/core/schema.js';
+import { COLLECTION_KEYS, LEVERS, validateRecord } from '../public/js/core/schema.js';
 import { DEFAULT_SETTINGS, normalizeSettings, validateSettings } from '../public/js/core/settings.js';
 import { IMPORT_MODES, planImport } from '../public/js/core/io.js';
 import { buildDemoData, DEMO_COMPANY } from '../public/js/core/demo-data.js';

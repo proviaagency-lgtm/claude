@@ -550,10 +550,10 @@ export function actionLabel(result) {
     case 'promotions': {
       const name = result.record.name;
       if (d.missing > 0 && d.outOfStock.unitsGross > 0) {
-        return `Implanter « ${name} » dans ${d.missing} magasins de plus et sécuriser les stocks`;
+        return `Implanter « ${name} » dans tous les magasins prévus et sécuriser les stocks`;
       }
-      if (d.missing > 0) return `Implanter « ${name} » dans ${d.missing} magasins de plus`;
-      return `Sécuriser les stocks de « ${name} »`;
+      if (d.missing > 0) return `Implanter « ${name} » dans tous les magasins prévus`;
+      return `Sécuriser les stocks pendant « ${name} »`;
     }
     case 'listings':
       if (d.missing > 0) return `Référencer ${result.productName} dans ${d.missing} magasins de plus`;
@@ -563,4 +563,42 @@ export function actionLabel(result) {
     default:
       return result.productName;
   }
+}
+
+/**
+ * Merges results that lead to the same action at the same retailer (for
+ * example quarterly stock-out lines, or the products of one operation),
+ * largest value first.
+ */
+export function groupActions(results, valueOf) {
+  const groups = new Map();
+  for (const result of results) {
+    const label = actionLabel(result);
+    const key = `${result.lever}|${result.retailerId}|${label}`;
+    let group = groups.get(key);
+    if (!group) {
+      group = {
+        key,
+        label,
+        lever: result.lever,
+        retailerId: result.retailerId,
+        retailerName: result.retailerName,
+        value: 0,
+        units: { gross: 0, mfg: 0, retail: 0 },
+        mfg: { revenue: 0, margin: 0 },
+        retail: { revenue: 0, margin: 0 },
+        results: [],
+      };
+      groups.set(key, group);
+    }
+    group.value += valueOf(result);
+    for (const k of ['gross', 'mfg', 'retail']) group.units[k] += result.units[k];
+    for (const view of ['mfg', 'retail']) {
+      group[view].revenue += result[view].revenue;
+      group[view].margin += result[view].margin;
+    }
+    group.results.push(result);
+  }
+  for (const group of groups.values()) group.results.sort((a, b) => valueOf(b) - valueOf(a));
+  return [...groups.values()].sort((a, b) => b.value - a.value);
 }

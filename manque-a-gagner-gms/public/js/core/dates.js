@@ -50,23 +50,30 @@ export function overlapDays(aStart, aEnd, bStart, bEnd) {
   return Math.max(0, end - start + 1);
 }
 
-/** Inclusive date window for a named period preset, relative to `today`. */
+/**
+ * Inclusive date window for a named period preset, relative to `today`.
+ * Rolling presets stay open on the right so planned operations show up.
+ */
 export function periodWindow(preset, today, custom = {}) {
   const y = Number(today.slice(0, 4));
   const m = Number(today.slice(5, 7));
   switch (preset) {
     case 'last-12-months':
-      return { from: addDays(today, -364), to: today };
+      return { from: addDays(today, -364), to: null };
     case 'last-90-days':
-      return { from: addDays(today, -89), to: today };
-    case 'year-to-date':
-      return { from: `${y}-01-01`, to: today };
+      return { from: addDays(today, -89), to: null };
+    case 'current-quarter': {
+      const first = Math.floor((m - 1) / 3) * 3 + 1;
+      const lastDay = new Date(Date.UTC(y, first + 2, 0)).getUTCDate();
+      return {
+        from: `${y}-${String(first).padStart(2, '0')}-01`,
+        to: `${y}-${String(first + 2).padStart(2, '0')}-${lastDay}`,
+      };
+    }
+    case 'current-year':
+      return { from: `${y}-01-01`, to: `${y}-12-31` };
     case 'last-year':
       return { from: `${y - 1}-01-01`, to: `${y - 1}-12-31` };
-    case 'quarter-to-date': {
-      const qStartMonth = Math.floor((m - 1) / 3) * 3 + 1;
-      return { from: `${y}-${String(qStartMonth).padStart(2, '0')}-01`, to: today };
-    }
     case 'custom':
       return {
         from: isISODate(custom.from) ? custom.from : null,
